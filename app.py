@@ -44,37 +44,7 @@ def init_db():
 init_db()
 print("数据库初始化完成")
 
-# ---------- 3. 健康指数与剩余寿命估算函数 ----------
-def estimate_health_and_life(vibration, temperature, status):
-    """
-    根据振动、温度和状态计算健康指数和剩余寿命估算值。
-    返回：(health_score, remaining_life_hours, remaining_life_percent)
-    """
-    # 初始健康分100
-    health_score = 100.0
-
-    # 振动惩罚：振动从0.1到10，线性扣分（最多扣40分）
-    health_score -= (vibration / 10.0) * 40.0
-
-    # 温度惩罚：温度从20到90，线性扣分（最多扣40分）
-    health_score -= ((temperature - 20.0) / 70.0) * 40.0
-
-    # 状态额外惩罚：根据严重度额外扣分
-    if status == "轻微抖动":
-        health_score -= 10.0
-    elif status == "严重抖动":
-        health_score -= 30.0
-
-    # 限制范围0~100
-    health_score = max(0.0, min(100.0, health_score))
-
-    # 假设满寿命为1000小时，剩余寿命按健康分数比例计算
-    remaining_life_hours = (health_score / 100.0) * 1000.0
-    remaining_life_percent = health_score
-
-    return round(health_score, 2), round(remaining_life_hours, 2), round(remaining_life_percent, 2)
-
-# ---------- 4. 根路由 ----------
+# ---------- 3. 根路由 ----------
 @app.route('/')
 def index():
     return '''
@@ -83,15 +53,16 @@ def index():
     <ul>
         <li>POST /predict - 预测接口，body: {"vibration": 数值, "temperature": 数值}</li>
         <li>GET /history - 获取最近20条预测记录</li>
+        <li>POST /history/delete - 清空所有历史记录</li>
     </ul>
     '''
 
-# ---------- 5. 预测接口 ----------
+# ---------- 4. 预测接口 ----------
 @app.route('/predict', methods=['POST'])
 def predict():
     """
     接收 JSON：{"vibration": 数值, "temperature": 数值}
-    返回 JSON：包含状态、健康指数、剩余寿命估算值等
+    返回 JSON：{"status": "平稳/轻微抖动/严重抖动"}
     """
     data = request.get_json()
 
@@ -108,12 +79,7 @@ def predict():
     input_features = [[vibration, temperature]]
     predicted_status = model.predict(input_features)[0]
 
-    # 计算健康指数和剩余寿命
-    health_score, remaining_life_hours, remaining_life_percent = estimate_health_and_life(
-        vibration, temperature, predicted_status
-    )
-
-    # 将本次预测记录存入数据库
+    # 保存记录
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -124,15 +90,9 @@ def predict():
     conn.commit()
     conn.close()
 
-    # 返回完整结果
-    return jsonify({
-        "status": predicted_status,
-        "health_score": health_score,
-        "remaining_life_hours": remaining_life_hours,
-        "remaining_life_percent": remaining_life_percent
-    })
+    return jsonify({"status": predicted_status})
 
-# ---------- 6. 历史记录接口 ----------
+# ---------- 5. 历史记录接口 ----------
 @app.route('/history', methods=['GET'])
 def history():
     """
@@ -149,6 +109,24 @@ def history():
 
     history = [dict(row) for row in rows]
     return jsonify(history)
+
+# ---------- 6. 删除历史记录接口（清空全部） ----------
+@app.route('/history/delete', methods=['POST', 'DELETE'])
+def delete_history():
+    """
+    清空所有历史记录
+    返回 JSON：{"message": "历史记录已清空", "deleted_count": 删除条数}
+    """
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    # 查询当前记录数
+    cursor.execute("SELECT COUNT(*) FROM predictions")
+    count = cursor.fetchone()[0]
+    # 删除所有记录
+    cursor.execute("DELETE FROM predictions")
+    conn.commit()
+    conn.close()
+    return jsonify({"message": "历史记录已清空", "deleted_count": count})
 
 # ---------- 7. 启动应用 ----------
 if __name__ == '__main__':
