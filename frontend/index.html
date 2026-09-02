@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工业机器人关节健康诊断系统</title>
+    <style>
+        :root {
+            --bg-primary: #0a1428;
+            --bg-secondary: #0f1f38;
+            --bg-card: #14273e;
+            --bg-card-hover: #1a304a;
+            --bg-input: #0b1a2e;
+            --border-color: #1f4e7a;
+            --border-glow: #2a7fff;
+            --text-primary: #e0ecff;
+            --text-secondary: #9fb3d1;
+            --text-muted: #6c84a8;
+            --green: #2ecc71;
+            --yellow: #f1c40f;
+            --red: #e74c3c;
+            --shadow-normal: 0 8px 20px rgba(0, 0, 0, 0.3);
+            --shadow-glow: 0 0 20px rgba(42, 127, 255, 0.3);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg-primary);
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 0;
+            background-image:
+                radial-gradient(ellipse at 20% 20%, rgba(20, 60, 120, 0.6) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 80%, rgba(10, 40, 90, 0.8) 0%, transparent 60%),
+                linear-gradient(135deg, #0a1428 0%, #0f1f38 100%);
+            background-attachment: fixed;
+        }
+
+        /* 顶部导航栏 */
+        .navbar {
+            width: 100%;
+            background: rgba(10, 20, 40, 0.9);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            padding: 16px 30px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar .icon {
+            font-size: 2rem;
+            filter: drop-shadow(0 0 8px var(--border-glow));
+        }
+
+        .navbar .title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            background: linear-gradient(90deg, #c0d8ff, #7aa8ff, #c0d8ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 15px rgba(42, 127, 255, 0.5);
+        }
+
+        .navbar .subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-left: auto;
+            letter-spacing: 1px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1100px;
+            margin: 30px auto;
+            padding: 0 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        /* 卡片通用样式 */
+        .card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: var(--shadow-normal), var(--shadow-glow);
+            border: 1px solid var(--border-color);
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--border-glow);
+            box-shadow: var(--shadow-normal), 0 0 30px rgba(42, 127, 255, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .card-header h2 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: 1px;
+        }
+
+        .card-header .icon {
+            font-size: 1.8rem;
+        }
+
+        /* 预测卡片内部 */
+        .control-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1 1 200px;
+        }
+
+        .input-group label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            letter-spacing: 1px;
+            font-weight: 500;
+        }
+
+        .input-group input {
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 12px 16px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            outline: none;
+            transition: var(--transition);
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .input-group input:focus {
+            border-color: var(--border-glow);
+            box-shadow: 0 0 12px rgba(42, 127, 255, 0.6), inset 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-predict {
+            background: linear-gradient(135deg, #1f6feb, #2563eb);
+            border: none;
+            border-radius: 12px;
+            padding: 12px 30px;
+            font-size: 1rem;
+            font-weight: bold;
+            letter-spacing: 1px;
+            color: white;
+            cursor: pointer;
+            transition: var(--transition);
+            white-space: nowrap;
+            box-shadow: 0 4px 15px rgba(31, 111, 235, 0.4);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-predict:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(31, 111, 235, 0.7);
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        }
+
+        .btn-predict:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 10px rgba(31, 111, 235, 0.5);
+        }
+
+        .btn-predict:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* 结果展示区域 */
+        .result-display {
+            display: flex;
+            align-items: center;
+            gap: 25px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            border: 1px solid rgba(42, 127, 255, 0.3);
+            flex-wrap: wrap;
+        }
+
+        .status-light {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #444;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+            transition: var(--transition);
+            position: relative;
+        }
+
+        .status-light::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: inherit;
+            transform: translate(-50%, -50%);
+            filter: blur(10px);
+            opacity: 0.7;
+        }
+
+        .status-light.green {
+            background: var(--green);
+            box-shadow: 0 0 25px var(--green);
+        }
+
+        .status-light.yellow {
+            background: var(--yellow);
+            box-shadow: 0 0 25px var(--yellow);
+        }
+
+        .status-light.red {
+            background: var(--red);
+            box-shadow: 0 0 25px var(--red);
+        }
+
+        .status-text {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            transition: var(--transition);
+        }
+
+        .status-text.green { color: var(--green); }
+        .status-text.yellow { color: var(--yellow); }
+        .status-text.red { color: var(--red); }
+
+        .status-text.placeholder {
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            font-weight: 500;
+        }
+
+        /* 健康指数与剩余寿命 */
+        .health-info {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1 1 100%;
+            padding-top: 15px;
+            border-top: 1px solid rgba(42, 127, 255, 0.2);
+        }
+
+        .health-item, .life-item {
+            font-size: 1rem;
+            color: var(--text-secondary);
+        }
+
+        .health-item span:last-child,
+        .life-item span:last-child {
+            font-weight: bold;
+            color: var(--text-primary);
+        }
+
+        /* 历史记录表格 */
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            background: rgba(0, 0, 0, 0.15);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            padding: 14px 18px;
+            text-align: left;
+            border-bottom: 1px solid rgba(42, 127, 255, 0.15);
+        }
+
+        th {
+            background: rgba(20, 60, 120, 0.4);
+            color: var(--text-secondary);
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+        }
+
+        tr:nth-child(even) {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        tr:hover {
+            background: rgba(42, 127, 255, 0.1);
+            transition: var(--transition);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .status-badge.green {
+            background: rgba(46, 204, 113, 0.2);
+            color: var(--green);
+            border: 1px solid var(--green);
+        }
+
+        .status-badge.yellow {
+            background: rgba(241, 196, 15, 0.2);
+            color: var(--yellow);
+            border: 1px solid var(--yellow);
+        }
+
+        .status-badge.red {
+            background: rgba(231, 76, 60, 0.2);
+            color: var(--red);
+            border: 1px solid var(--red);
+        }
+
+        .loading-message, .empty-message, .error-message {
+            text-align: center;
+            padding: 30px;
+            color: var(--text-muted);
+            font-size: 1rem;
+        }
+
+        .error-message {
+            color: var(--red);
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 12px 20px;
+                flex-wrap: wrap;
+            }
+
+            .navbar .title {
+                font-size: 1.4rem;
+            }
+
+            .navbar .subtitle {
+                margin-left: 0;
+                width: 100%;
+                text-align: left;
+            }
+
+            .container {
+                padding: 10px;
+                margin: 20px auto;
+            }
+
+            .card {
+                padding: 18px;
+            }
+
+            .control-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .btn-predict {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .result-display {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .status-text {
+                font-size: 1.8rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .status-text {
+                font-size: 1.5rem;
+            }
+
+            th, td {
+                padding: 10px 12px;
+                font-size: 0.85rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <nav class="navbar">
+        <span class="icon">🤖</span>
+        <span class="title">机器人关节健康诊断系统</span>
+        <span class="subtitle">Industrial Robot Health Monitor</span>
+    </nav>
+
+    <!-- 主内容容器 -->
+    <div class="container">
+        <!-- 预测卡片 -->
+        <div class="card">
+            <div class="card-header">
+                <span class="icon">📊</span>
+                <h2>实时健康预测</h2>
+            </div>
+            <div class="control-row">
+                <div class="input-group">
+                    <label for="vibration">振动值 (mm/s)</label>
+                    <input type="number" id="vibration" placeholder="0.1 - 10.0" step="0.1" min="0.1" max="10.0" required>
+                </div>
+                <div class="input-group">
+                    <label for="temperature">温度 (°C)</label>
+                    <input type="number" id="temperature" placeholder="20 - 90" step="0.1" min="20" max="90" required>
+                </div>
+                <button class="btn-predict" id="btnPredict">🔍 预测</button>
+            </div>
+            <div class="result-display" id="resultPanel" style="margin-top: 20px;">
+                <div class="status-light" id="statusLight"></div>
+                <span class="status-text placeholder" id="statusText">等待预测...</span>
+                <!-- 健康指数与剩余寿命 -->
+                <div class="health-info" id="healthInfo" style="display: none;">
+                    <div class="health-item">
+                        <span>健康指数（经验估算）：</span>
+                        <span id="healthScore"></span>
+                        <span>/ 100</span>
+                    </div>
+                    <div class="life-item">
+                        <span>剩余寿命（经验估算）：</span>
+                        <span id="remainingLifeHours"></span>
+                        <span> 小时（</span>
+                        <span id="remainingLifePercent"></span>
+                        <span>%）</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 历史记录卡片 -->
+        <div class="card">
+            <div class="card-header">
+                <span class="icon">📋</span>
+                <h2>最近20条历史记录</h2>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>时间</th>
+                            <th>振动值 (mm/s)</th>
+                            <th>温度 (°C)</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyBody">
+                        <tr>
+                            <td colspan="4" class="loading-message">正在加载历史记录...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 后端 API 基础地址（根据实际部署情况修改）
+        const API_BASE = 'http://127.0.0.1:5000';
+
+        // 获取元素
+        const vibrationInput = document.getElementById('vibration');
+        const temperatureInput = document.getElementById('temperature');
+        const btnPredict = document.getElementById('btnPredict');
+        const statusLight = document.getElementById('statusLight');
+        const statusText = document.getElementById('statusText');
+        const historyBody = document.getElementById('historyBody');
+        const healthInfo = document.getElementById('healthInfo');
+        const healthScoreEl = document.getElementById('healthScore');
+        const remainingLifeHoursEl = document.getElementById('remainingLifeHours');
+        const remainingLifePercentEl = document.getElementById('remainingLifePercent');
+
+        // 设置状态和健康信息
+        function setStatus(result) {
+            const status = result.status;
+            const healthScore = result.health_score;
+            const remainingLifeHours = result.remaining_life_hours;
+            const remainingLifePercent = result.remaining_life_percent;
+
+            statusLight.className = 'status-light';
+            statusText.className = 'status-text';
+
+            if (status === '平稳') {
+                statusLight.classList.add('green');
+                statusText.classList.add('green');
+            } else if (status === '轻微抖动') {
+                statusLight.classList.add('yellow');
+                statusText.classList.add('yellow');
+            } else if (status === '严重抖动') {
+                statusLight.classList.add('red');
+                statusText.classList.add('red');
+            } else {
+                statusText.classList.add('placeholder');
+                statusText.textContent = status;
+                healthInfo.style.display = 'none';
+                return;
+            }
+
+            statusText.textContent = status;
+
+            // 显示健康指数和剩余寿命
+            healthInfo.style.display = 'flex';
+            healthScoreEl.textContent = healthScore.toFixed(2);
+            remainingLifeHoursEl.textContent = remainingLifeHours.toFixed(2);
+            remainingLifePercentEl.textContent = remainingLifePercent.toFixed(2);
+        }
+
+        // 加载历史记录
+        async function loadHistory() {
+            try {
+                const response = await fetch(`${API_BASE}/history`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                renderHistory(data);
+            } catch (error) {
+                console.error('加载历史记录失败:', error);
+                historyBody.innerHTML = `<tr><td colspan="4" class="error-message">无法加载历史记录，请检查后端服务是否启动。</td></tr>`;
+            }
+        }
+
+        // 渲染历史记录表格
+        function renderHistory(records) {
+            if (!records || records.length === 0) {
+                historyBody.innerHTML = `<tr><td colspan="4" class="empty-message">暂无历史记录</td></tr>`;
+                return;
+            }
+
+            let html = '';
+            records.forEach(record => {
+                const statusClass = record.status === '平稳' ? 'green' :
+                                    record.status === '轻微抖动' ? 'yellow' :
+                                    record.status === '严重抖动' ? 'red' : '';
+                html += `
+                    <tr>
+                        <td>${record.timestamp}</td>
+                        <td>${record.vibration.toFixed(2)}</td>
+                        <td>${record.temperature.toFixed(2)}</td>
+                        <td><span class="status-badge ${statusClass}">${record.status}</span></td>
+                    </tr>
+                `;
+            });
+            historyBody.innerHTML = html;
+        }
+
+        // 执行预测
+        async function predict() {
+            const vibration = parseFloat(vibrationInput.value);
+            const temperature = parseFloat(temperatureInput.value);
+
+            if (isNaN(vibration) || isNaN(temperature)) {
+                alert('请输入有效的数值！');
+                return;
+            }
+
+            if (vibration < 0.1 || vibration > 10.0) {
+                alert('振动值建议在 0.1 - 10.0 mm/s 之间');
+                return;
+            }
+            if (temperature < 20 || temperature > 90) {
+                alert('温度建议在 20 - 90 °C 之间');
+                return;
+            }
+
+            btnPredict.disabled = true;
+            btnPredict.textContent = '预测中...';
+
+            try {
+                const response = await fetch(`${API_BASE}/predict`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ vibration, temperature })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => null);
+                    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                setStatus(data);
+                await loadHistory();
+            } catch (error) {
+                console.error('预测失败:', error);
+                alert(`预测失败：${error.message}`);
+            } finally {
+                btnPredict.disabled = false;
+                btnPredict.textContent = '🔍 预测';
+            }
+        }
+
+        // 事件监听
+        btnPredict.addEventListener('click', predict);
+        [vibrationInput, temperatureInput].forEach(input => {
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    predict();
+                }
+            });
+        });
+
+        // 页面加载时自动加载历史记录
+        window.addEventListener('load', () => {
+            loadHistory();
+        });
+    </script>
+</body>
+</html>
