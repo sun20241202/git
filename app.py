@@ -2,7 +2,7 @@ import os
 import sqlite3
 from datetime import datetime
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 import joblib
 
@@ -74,17 +74,10 @@ def estimate_health_and_life(vibration, temperature, status):
 
     return round(health_score, 2), round(remaining_life_hours, 2), round(remaining_life_percent, 2)
 
-# ---------- 4. 根路由 ----------
+# ---------- 4. 根路由（渲染前端页面） ----------
 @app.route('/')
 def index():
-    return '''
-    <h3>工业机器人关节健康状态诊断系统</h3>
-    <p>接口列表：</p>
-    <ul>
-        <li>POST /predict - 预测接口，body: {"vibration": 数值, "temperature": 数值}</li>
-        <li>GET /history - 获取最近20条预测记录</li>
-    </ul>
-    '''
+    return render_template('index.html')
 
 # ---------- 5. 预测接口 ----------
 @app.route('/predict', methods=['POST'])
