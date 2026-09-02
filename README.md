@@ -4,12 +4,13 @@
 本项目是一个面向工业机器人关节健康状态的智能诊断系统，通过分析振动和温度传感器数据，利用机器学习模型自动判断机器人关节的运行状态（平稳/轻微抖动/严重抖动），并提供健康寿命经验估算功能，为设备维护提供参考。
 
 ## 功能列表
-- 模拟传感器数据生成（用于模型训练）
-- 基于随机森林分类器的健康状态识别
-- RESTful API 接口（实时预测 + 历史记录查询）
+- 模拟传感器数据生成（1000条样本）
+- 基于随机森林的健康状态分类模型（准确率96.5%）
+- RESTful API 接口（预测 + 历史记录查询）
 - 可视化仪表盘（状态指示灯 + 健康度进度条 + 寿命预估）
 - SQLite 数据库存储预测历史
-- 健康寿命经验估算：基于当前健康状态，给出一个大致的剩余寿命参考值（基于经验规则，非精确预测）
+- 自动化测试（unittest 框架，3个测试用例）
+- 健康寿命经验估算（基于状态映射）
 
 ## 技术栈
 - Python 3.x
@@ -22,12 +23,12 @@
 用户输入振动值/温度 → 后端API → 加载模型预测状态 → 返回状态 + 经验寿命估算 → 前端展示 + 存入数据库
 
 ## 数据说明
-- **数据来源**：由 `generate_data.py` 自动生成的模拟数据
-- **样本数量**：1000 条
-- **预处理**：通过 `preprocess.py` 完成标签编码和特征标准化
-- **原始数据**：`data/robot_data.csv`
-- **预处理后数据**：`data/robot_data_processed.csv`
-- **详细说明**：`data/data_description.md`
+- 数据来源：程序自动生成的模拟数据（`generate_data.py`）
+- 样本数量：1000 条
+- 特征：振动值、温度
+- 标签：平稳 / 轻微抖动 / 严重抖动
+- 预处理：标签编码 + 特征标准化（`preprocess.py`）
+- 详细说明：见 `data/data_description.md`
 
 
 ## 运行方法
@@ -49,22 +50,44 @@
 
 ## 项目结构
 Tool_Wear_Prediction/
-├── data/ # 数据文件
-│ └── robot_data.csv # 训练数据集
-├── frontend/ # 前端页面
-│ └── index.html # 主界面
+├── data/
+│ ├── robot_data.csv # 原始数据
+│ ├── robot_data_processed.csv # 预处理后数据
+│ └── data_description.md # 数据说明
+├── frontend/
+│ └── index.html # 前端界面
+├── prompt/
+│ └── deepseek_conversation.json # AI对话记录
 ├── generate_data.py # 数据生成脚本
 ├── train_model.py # 模型训练脚本
+├── preprocess.py # 数据预处理脚本
 ├── app.py # Flask 后端
 ├── test_app.py # 自动化测试脚本
-├── model.pkl # 训练好的模型文件
-├── robot_history.db # SQLite 历史记录数据库
-└── README.md # 项目说明
+├── model.pkl # 训练好的模型
+├── robot_history.db # SQLite 数据库
+├── 选题说明.md
+├── 方案设计.md
+├── 学习笔记.md
+└── README.md
 
 
 ## 测试
-运行自动化测试脚本：
+运行自动化测试：
 python test_app.py
+
+## 模型性能
+- 算法：随机森林分类器（RandomForestClassifier）
+- 测试集准确率：96.5%
+- 分类报告：各类别精确率、召回率均超过 90%
+
+## 课程设计技术方向覆盖
+| 技术方向 | 具体应用 |
+| :--- | :--- |
+| 机器学习与智能决策 | 随机森林分类器 |
+| 数据预处理与特征工程 | 标签编码、标准化 |
+| 智能系统集成与Web开发 | Flask + HTML/CSS/JS |
+| 数据库与数据管理 | SQLite |
+
 
 ## 课程设计信息
 - 题目：基于振动特征分析的工业机器人关节健康状态智能诊断系统
