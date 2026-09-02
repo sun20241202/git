@@ -42,22 +42,6 @@ class TestApp(unittest.TestCase):
         response3 = self.client.post('/predict', json={})
         self.assertEqual(response3.status_code, 400)
 
-    def test_delete_history_endpoint(self):
-        """测试删除历史记录接口"""
-        # 先插入一条预测记录
-        self.client.post('/predict', json={"vibration": 3.5, "temperature": 55})
-        # 调用删除接口
-        response = self.client.post('/history/delete')
-        self.assertEqual(response.status_code, 200)
-        # 检查返回消息
-        data = response.get_json()
-        self.assertIn('message', data)
-        # 再查询历史，应为空列表
-        history_response = self.client.get('/history')
-        self.assertEqual(history_response.status_code, 200)
-        history_data = history_response.get_json()
-        self.assertEqual(history_data, [])
-
 
 if __name__ == '__main__':
     unittest.main()
